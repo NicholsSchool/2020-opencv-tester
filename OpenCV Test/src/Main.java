@@ -9,7 +9,7 @@ public class Main {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
 		// Replace this String with the path to your vision image
-		Mat matrix = Imgcodecs.imread(System.getProperty("user.dir") + "\\example images\\BlueGoal-330in-ProtectedZone.jpg");
+		Mat matrix = Imgcodecs.imread(System.getProperty("user.dir") + "\\example images\\BlueGoal-Far-ProtectedZone.jpg");
 		
 		SimpleRetroPipeline rp = new SimpleRetroPipeline();
 
