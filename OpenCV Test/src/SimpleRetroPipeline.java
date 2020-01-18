@@ -25,18 +25,23 @@ import org.opencv.imgproc.Imgproc;
  *
  */
 public class SimpleRetroPipeline {
+	
+	private static final double METERS_PER_INCH = 0.0254;
 
     private static final Scalar BLUE = new Scalar(255, 0, 0), GREEN = new Scalar(0, 255, 0),
             RED = new Scalar(0, 0, 255), YELLOW = new Scalar(0, 255, 255), ORANGE = new Scalar(0, 165, 255),
             MAGENTA = new Scalar(255, 0, 255);
     
     private static final double FOCAL_LENGTH = 740; // In pixels, needs tuning if res is changed
+    private static final double HFOV = 61;
+    private static final double VFOV = 34.3;
 
     private Mat dst;
     private Mat bitmask;
 
     private MatOfPoint target;
     private Point[] vertices;
+    private Point center;
     
     private Mat intrinsics;
     
@@ -65,6 +70,8 @@ public class SimpleRetroPipeline {
         if(vertices.length != 4) {
         	return;
         }
+        
+        getCenter();
         
         solvePnP();
         
@@ -133,6 +140,15 @@ public class SimpleRetroPipeline {
     	}
     }
     
+    private void getCenter() {
+    	double x = (vertices[0].x + vertices[3].x) / 2;
+    	double y = (vertices[0].y + vertices[3].y) / 2;
+    	
+    	center = new Point(x, y);
+		Imgproc.drawMarker(dst, center, GREEN);
+    }
+    
+    @SuppressWarnings("unused")
     private void solvePnP() {
         // All camera intrinsics are in pixel values
         double principalOffsetX = dst.width() / 2;
@@ -147,31 +163,32 @@ public class SimpleRetroPipeline {
         // 3D axes is same as 2D image axes, right is positive x, down is positive y,
         // forward is positive z (a clockwise axes system), values are in inches
         Point3[] worldPts = new Point3[4];
-        worldPts[0] = new Point3(-19.625, 0, 0);
-        worldPts[1] = new Point3(-9.8125, 17, 0);
-        worldPts[2] = new Point3(9.8125, 17, 0);
-        worldPts[3] = new Point3(19.625, 0, 0);
+        worldPts[0] = new Point3(-19.625 * METERS_PER_INCH, 0, 0);
+        worldPts[1] = new Point3(-9.8125 * METERS_PER_INCH, 17 * METERS_PER_INCH, 0);
+        worldPts[2] = new Point3(9.8125 * METERS_PER_INCH, 17 * METERS_PER_INCH, 0);
+        worldPts[3] = new Point3(19.625 * METERS_PER_INCH, 0, 0);
 
         rvec = new Mat();
         tvec = new Mat();
         Calib3d.solvePnP(new MatOfPoint3f(worldPts), new MatOfPoint2f(vertices), intrinsics, new MatOfDouble(), rvec, tvec);
     }
     
+    @SuppressWarnings("unused")
     private void reproject() {
         // Set up and draw 3D box with the corners on the outside of the target
         Point3[] worldPts1 = new Point3[4];
-        worldPts1[0] = new Point3(-19.625, 17, 0);
-        worldPts1[1] = new Point3(-19.625, -17, 0);
-        worldPts1[2] = new Point3(19.625, -17, 0);
-        worldPts1[3] = new Point3(19.625, 17, 0);
+        worldPts1[0] = new Point3(-19.625 * METERS_PER_INCH, 17 * METERS_PER_INCH, 0);
+        worldPts1[1] = new Point3(-19.625 * METERS_PER_INCH, -17 * METERS_PER_INCH, 0);
+        worldPts1[2] = new Point3(19.625 * METERS_PER_INCH, -17 * METERS_PER_INCH, 0);
+        worldPts1[3] = new Point3(19.625 * METERS_PER_INCH, 17 * METERS_PER_INCH, 0);
         MatOfPoint2f reprojPts1 = new MatOfPoint2f();
         Calib3d.projectPoints(new MatOfPoint3f(worldPts1), rvec, tvec, intrinsics, new MatOfDouble(), reprojPts1);
 
         Point3[] worldPts2 = new Point3[4];
-        worldPts2[0] = new Point3(-19.625, 17, -12);
-        worldPts2[1] = new Point3(-19.625, -17, -12);
-        worldPts2[2] = new Point3(19.625, -17, -12);
-        worldPts2[3] = new Point3(19.625, 17, -12);
+        worldPts2[0] = new Point3(-19.625 * METERS_PER_INCH, 17 * METERS_PER_INCH, -12 * METERS_PER_INCH);
+        worldPts2[1] = new Point3(-19.625 * METERS_PER_INCH, -17 * METERS_PER_INCH, -12 * METERS_PER_INCH);
+        worldPts2[2] = new Point3(19.625 * METERS_PER_INCH, -17 * METERS_PER_INCH, -12 * METERS_PER_INCH);
+        worldPts2[3] = new Point3(19.625 * METERS_PER_INCH, 17 * METERS_PER_INCH, -12 * METERS_PER_INCH);
         MatOfPoint2f reprojPts2 = new MatOfPoint2f();
         Calib3d.projectPoints(new MatOfPoint3f(worldPts2), rvec, tvec, intrinsics, new MatOfDouble(), reprojPts2);
 
@@ -202,6 +219,51 @@ public class SimpleRetroPipeline {
         return hull; 
     }
 
+    public double getTheta() {
+    	if(center == null) {
+    		return 0;
+    	}
+    	
+    	return (0.5 - center.x / dst.width()) * HFOV;
+    }
+    
+    public double getPhi() {
+    	if(center == null) {
+    		return 0;
+    	}
+    	
+    	return (0.5 - center.y / dst.width()) * VFOV;
+    }
+    
+    public String getRVec() {
+        String s = "<";
+        if (rvec != null) {
+            for (int i = 0; i < rvec.rows(); i++) {
+                if (i != 0) {
+                    s += ", ";
+                }
+                s += rvec.get(i, 0)[0];
+            }
+        }
+        s += ">";
+
+        return s;
+    }
+
+    public String getTVec() {
+        String s = "<";
+        if (tvec != null) {
+            for (int i = 0; i < tvec.rows(); i++) {
+                if (i != 0) {
+                    s += ", ";
+                }
+                s += tvec.get(i, 0)[0];
+            }
+        }
+        s += ">";
+
+        return s;
+    }
 
     public Mat getDst() {
         return dst;
