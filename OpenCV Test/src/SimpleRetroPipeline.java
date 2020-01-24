@@ -73,9 +73,9 @@ public class SimpleRetroPipeline {
         
         getCenter();
         
-        solvePnP();
+        // solvePnP();
         
-        reproject();
+        // reproject();
     }
     
     private void mask() {
@@ -232,7 +232,7 @@ public class SimpleRetroPipeline {
     		return 0;
     	}
     	
-    	return (0.5 - center.y / dst.width()) * VFOV;
+    	return (0.5 - center.y / dst.height()) * VFOV;
     }
     
     public String getRVec() {
