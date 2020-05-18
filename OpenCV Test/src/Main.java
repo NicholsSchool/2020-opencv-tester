@@ -9,9 +9,9 @@ public class Main {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		
 		// Replace this String with the path to your vision image
-		Mat matrix = Imgcodecs.imread(System.getProperty("user.dir") + "\\example images\\BlueGoal-132in-Center.jpg");
+		Mat matrix = Imgcodecs.imread(System.getProperty("user.dir") + "\\example images\\BlueGoal-084in-Center.jpg");
 		
-		SimpleRetroPipeline rp = new SimpleRetroPipeline();
+		RetroPipeline rp = new RetroPipeline();
 
 		
 		rp.process(matrix);
@@ -19,12 +19,8 @@ public class Main {
 		HighGui.imshow("src", matrix);
 		HighGui.imshow("dst", rp.getDst());
 		
-		System.out.println("rotation vector: " + rp.getRVec());
-		System.out.println("translation vector: " + rp.getTVec());
-		
-		System.out.println("Theta: " + rp.getTheta());
-		System.out.println("Phi: " + rp.getPhi());
-		
+		// System.out.println("translation vector: " + rp.getTVec());
+				
 		HighGui.waitKey();
 	}
 
